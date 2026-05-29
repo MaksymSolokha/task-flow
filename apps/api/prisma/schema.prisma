@@ -6,3 +6,59 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  passwordHash     String            @map("password_hash")
+  avatarColor      String            @map("avatar_color")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  workspaceMembers WorkspaceMember[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  workspaceMembers WorkspaceMember[]
+  projects         Project[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String    @map("workspace_id")
+  role        Role
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+
+  @@unique([userId, workspaceId])
+  @@map("workspace_members")
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  color       String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId String    @map("workspace_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("projects")
+}
