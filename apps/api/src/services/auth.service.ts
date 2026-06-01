@@ -1,8 +1,9 @@
 import * as crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../lib/error';
+import { generateAccessToken, generateRefreshToken } from '../lib/jwt';
 import { prisma } from '../lib/prisma';
-import type { authUser } from '../schemas/auth.schema';
+import type { LoginUserType, NewUserType } from '../schemas/authUserSchema';
 
 const AVATAR_COLORS = [
   'bg-violet-500',
@@ -12,7 +13,7 @@ const AVATAR_COLORS = [
   'bg-pink-500',
 ];
 
-export const createAuthUser = async ({ name, password, email }: authUser) => {
+export const createAuthUser = async ({ name, password, email }: NewUserType) => {
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
     throw new AppError(409, 'Email already in use');
@@ -39,4 +40,34 @@ export const createAuthUser = async ({ name, password, email }: authUser) => {
   });
 
   return user;
+};
+
+export const loginAuthUser = async ({ password, email }: LoginUserType) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    throw new AppError(401, 'Invalid credentials');
+  }
+
+  const isCorrectPassword = await bcrypt.compare(password, user.passwordHash);
+
+  if (!isCorrectPassword) {
+    throw new AppError(401, 'Invalid credentials');
+  }
+
+  const accessToken = generateAccessToken({ userId: user.id });
+  const refreshToken = generateRefreshToken({ userId: user.id });
+  const { email: userEmail, name, avatarColor, createdAt, id, updatedAt } = user;
+
+  return {
+    user: {
+      email: userEmail,
+      name,
+      avatarColor,
+      createdAt,
+      id,
+      updatedAt,
+    },
+    accessToken,
+    refreshToken,
+  };
 };
