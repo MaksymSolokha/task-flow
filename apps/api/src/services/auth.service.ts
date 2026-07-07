@@ -4,6 +4,7 @@ import { AppError } from '../lib/error';
 import { generateAccessToken, generateRefreshToken } from '../lib/jwt';
 import { prisma } from '../lib/prisma';
 import type { LoginUserType, NewUserType } from '../schemas/authUserSchema';
+import { slugify } from '../utils/slug';
 
 const AVATAR_COLORS = [
   'bg-violet-500',
@@ -21,7 +22,7 @@ export const createAuthUser = async ({ name, password, email }: NewUserType) => 
 
   const passwordHash = await bcrypt.hash(password, 10);
   const avatarColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
-  const slug = crypto.randomUUID() + name;
+  const slug = slugify(name + "'s Workspace");
   const user = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: { email, name, passwordHash, avatarColor },
