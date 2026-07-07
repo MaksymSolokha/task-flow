@@ -23,6 +23,31 @@ export const getWorkspaces = async (userId: string) => {
   }));
 };
 
+export const getWorkspaceById = async (workspaceId: string, userId: string) => {
+  const member = await prisma.workspaceMember.findUnique({
+    where: {
+      userId_workspaceId: { userId, workspaceId },
+    },
+    select: {
+      role: true,
+      workspace: {
+        select: { id: true, name: true, slug: true },
+      },
+    },
+  });
+
+  if (!member) {
+    return null;
+  }
+
+  return {
+    id: member.workspace.id,
+    name: member.workspace.name,
+    slug: member.workspace.slug,
+    role: member.role,
+  };
+};
+
 export const createWorkspace = async (name: string, userId: string) => {
   const slug = slugify(name);
 
